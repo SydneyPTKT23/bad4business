@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SLC.Bad4Business.Core
+namespace SLC.Bad4Business.UI
 {
-    public class CharacterMovement : MonoBehaviour
+    public class Test : MonoBehaviour
     {
         // Start is called before the first frame update
         void Start()
