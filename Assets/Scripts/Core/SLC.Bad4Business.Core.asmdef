@@ -1,0 +1,16 @@
+{
+    "name": "SLC.Bad4Business.Core",
+    "rootNamespace": "SLC.Bad4Business.Core",
+    "references": [
+        "GUID:f781668b9c5f2374bbf59336ce8bac35"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
