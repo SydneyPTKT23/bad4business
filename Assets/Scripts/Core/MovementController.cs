@@ -84,10 +84,9 @@ namespace SLC.Bad4Business.Core
 
         private void HandleMovement()
         {
-            m_inputVector = m_inputHandler.InputVector;
+            m_inputVector = m_inputHandler.InputVector.normalized;
 
-
-            Vector3 t_desiredDirection = m_inputVector.y * transform.forward;
+            Vector3 t_desiredDirection = transform.forward * m_inputVector.y + transform.right * m_inputVector.x;
             Vector3 t_flatDirection = FlattenVectorOnSlopes(t_desiredDirection);
 
             Vector3 t_finalVector = m_currentSpeed * t_flatDirection;
