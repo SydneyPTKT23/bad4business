@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 82774495}
   - component: {fileID: 82774498}
   - component: {fileID: 82774494}
+  - component: {fileID: 82774500}
   - component: {fileID: 82774499}
   - component: {fileID: 82774493}
   m_Layer: 3
@@ -203,7 +204,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
-  rayLength: 0.1
+  rayLength: 1
   raySphereRadius: 0.1
   m_inputVector: {x: 0, y: 0}
   m_finalMoveVector: {x: 0, y: 0, z: 0}
@@ -272,6 +273,23 @@ MonoBehaviour:
   bulletsPerShot: 1
   bulletSpread: 0
   m_cam: {fileID: 963194227}
+--- !u!114 &82774500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82774492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ae998c874f3af341b37d0baade78a27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rayDistance: 2
+  raySphereRadius: 0.1
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &417936952
 GameObject:
   m_ObjectHideFlags: 0
@@ -675,16 +693,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3129ba64016a7824c8ce0294b03c85d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  radius: 10
-  angle: 120
-  visibleTargets: []
+  viewRadius: 20
+  viewAngle: 100
+  m_targetsInView: []
   targetMask:
     serializedVersion: 2
     m_Bits: 8
   obstructionMask:
     serializedVersion: 2
     m_Bits: 1
-  isPlayerVisible: 0
 --- !u!114 &1121081644
 MonoBehaviour:
   m_ObjectHideFlags: 0

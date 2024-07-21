@@ -9,16 +9,16 @@ public class FieldOfViewEditor : Editor
     {
         DetectionModule t_fov = (DetectionModule)target;
         Handles.color = Color.white;
-        Handles.DrawWireArc(t_fov.transform.position, Vector3.up, Vector3.forward, 360, t_fov.radius);
+        Handles.DrawWireArc(t_fov.transform.position, Vector3.up, Vector3.forward, 360, t_fov.viewRadius);
 
-        Vector3 t_viewAngleA = DirectionFromAngle(t_fov.transform.eulerAngles.y, -t_fov.angle / 2);
-        Vector3 t_viewAngleB = DirectionFromAngle(t_fov.transform.eulerAngles.y, t_fov.angle / 2);
+        Vector3 t_viewAngleA = DirectionFromAngle(t_fov.transform.eulerAngles.y, -t_fov.viewAngle / 2);
+        Vector3 t_viewAngleB = DirectionFromAngle(t_fov.transform.eulerAngles.y, t_fov.viewAngle / 2);
 
-        Handles.DrawLine(t_fov.transform.position, t_fov.transform.position + (t_viewAngleA * t_fov.radius));
-        Handles.DrawLine(t_fov.transform.position, t_fov.transform.position + (t_viewAngleB * t_fov.radius));
+        Handles.DrawLine(t_fov.transform.position, t_fov.transform.position + (t_viewAngleA * t_fov.viewRadius));
+        Handles.DrawLine(t_fov.transform.position, t_fov.transform.position + (t_viewAngleB * t_fov.viewRadius));
 
         Handles.color = Color.red;
-        foreach (Transform t_visibleTarget in t_fov.visibleTargets)
+        foreach (Transform t_visibleTarget in t_fov.m_targetsInView)
         {
             Handles.DrawLine(t_fov.transform.position, t_visibleTarget.position);
         }
