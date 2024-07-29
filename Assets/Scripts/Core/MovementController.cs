@@ -8,6 +8,7 @@ namespace SLC.Bad4Business.Core
     {
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7.0f;
+        [SerializeField] private float jumpForce = 10.0f;
 
         [Space, Header("Ground Settings")]
         [SerializeField] private float gravityMultiplier = 2.5f;
@@ -63,6 +64,8 @@ namespace SLC.Bad4Business.Core
 
                 CalculateMovementSpeed();
                 AddDownForce();
+
+                AddMovement();
             }
         }
 
@@ -96,8 +99,6 @@ namespace SLC.Bad4Business.Core
 
             if (m_characterController.isGrounded)
                 m_finalMoveVector.y += t_finalVector.y;
-
-            m_characterController.Move(m_finalMoveVector * Time.deltaTime);
         }
 
         private Vector3 FlattenVectorOnSlopes(Vector3 t_flattenedVector)
@@ -114,13 +115,33 @@ namespace SLC.Bad4Business.Core
             m_currentSpeed = !m_inputHandler.InputDetected ? 0.0f : moveSpeed;
         }
 
+        private void HandleBounce()
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                m_finalMoveVector.y = jumpForce;
+
+                m_isGrounded = false;
+            }
+        }
+
         private void AddDownForce()
         {
             // If grounded, add a little bit of extra downward force just in case.
             if (m_characterController.isGrounded)
+            {
                 m_finalMoveVector.y = -stickToGroundForce;
+                HandleBounce();
+            }
+            else
+            {
+                m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
+            }
+        }
 
-            m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
+        private void AddMovement()
+        {
+            m_characterController.Move(m_finalMoveVector * Time.deltaTime);
         }
     }
 }

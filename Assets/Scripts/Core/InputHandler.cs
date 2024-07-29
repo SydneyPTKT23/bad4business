@@ -5,13 +5,19 @@ namespace SLC.Bad4Business.Core
     public class InputHandler : MonoBehaviour
     {
         private Vector2 m_inputVector;
-
         public Vector2 InputVector => m_inputVector;
         public bool InputDetected => m_inputVector != Vector2.zero;
+
+
+
+        public bool InteractClicked { get; set; }
+        public bool InteractedReleased { get; set; }
+
 
         private void Update()
         {
             GetMovement();
+            GetInteraction();
         }
 
 
@@ -22,6 +28,12 @@ namespace SLC.Bad4Business.Core
 
 
 
+        }
+
+        private void GetInteraction()
+        {
+            InteractClicked = Input.GetKeyDown(KeyCode.E);
+            InteractedReleased = Input.GetKeyUp(KeyCode.E);
         }
     }
 }

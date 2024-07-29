@@ -2,7 +2,7 @@
     "name": "SLC.Bad4Business.Core",
     "rootNamespace": "SLC.Bad4Business.Core",
     "references": [
-        "GUID:f781668b9c5f2374bbf59336ce8bac35"
+        "GUID:d7ebb2a7eb8f4194db0d0fbb47800fd0"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

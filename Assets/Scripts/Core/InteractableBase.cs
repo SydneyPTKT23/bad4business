@@ -13,7 +13,15 @@ namespace SLC.Bad4Business.Core
         [Space]
         [SerializeField] private bool isInteractable = true;
 
+        [SerializeField] private string tooltipMessage = "Interact";
+
+
+        public float HoldDuration => holdDuration;
+
+        public bool HoldToInteract => holdToInteract;
         public bool IsInteractable => isInteractable;
+
+        public string TooltipMessage => tooltipMessage;
 
         public virtual void OnInteract()
         {
