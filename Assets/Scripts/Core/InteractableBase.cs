@@ -12,7 +12,6 @@ namespace SLC.Bad4Business.Core
 
         [Space]
         [SerializeField] private bool isInteractable = true;
-
         [SerializeField] private string tooltipMessage = "Interact";
 
 

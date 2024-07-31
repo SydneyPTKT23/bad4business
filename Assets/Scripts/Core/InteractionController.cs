@@ -16,8 +16,8 @@ namespace SLC.Bad4Business.Core
         private InputHandler m_inputHandler;
         private Camera m_camera;
 
-        private bool m_isInteracting;
-        private float m_holdingTimer = 0.0f;
+        private bool isInteracting;
+        private float holdingTimer = 0.0f;
 
         public InteractableBase m_interactable;
 
@@ -58,7 +58,7 @@ namespace SLC.Bad4Business.Core
                             panel.SetLabel(t_interactable.TooltipMessage);
                         }
                     }           
-                } 
+                }
             }
             else
             {
@@ -82,39 +82,39 @@ namespace SLC.Bad4Business.Core
 
             if (m_inputHandler.InteractClicked)
             {
-                m_isInteracting = true;
-                m_holdingTimer = 0.0f;
+                isInteracting = true;
+                holdingTimer = 0.0f;
             }
 
             if (m_inputHandler.InteractedReleased)
             {
-                m_isInteracting = false;
-                m_holdingTimer = 0.0f;
+                isInteracting = false;
+                holdingTimer = 0.0f;
                 panel.UpdateProgressBar(0.0f);
             }
 
-            if (m_isInteracting)
+            if (isInteracting)
             {
                 if (!m_interactable.IsInteractable)
                     return;
 
                 if (m_interactable.HoldToInteract)
                 {
-                    m_holdingTimer += Time.deltaTime;
+                    holdingTimer += Time.deltaTime;
 
-                    float t_heldPercent = m_holdingTimer / m_interactable.HoldDuration;
+                    float t_heldPercent = holdingTimer / m_interactable.HoldDuration;
                     panel.UpdateProgressBar(t_heldPercent);
 
                     if (t_heldPercent > 1.0f)
                     {
                         Interact();
-                        m_isInteracting = false;
+                        isInteracting = false;
                     }
                 }
                 else
                 {
                     Interact();
-                    m_isInteracting = false;
+                    isInteracting = false;
                 }
             }
         }
@@ -122,8 +122,10 @@ namespace SLC.Bad4Business.Core
         private bool IsSameInteractable(InteractableBase t_newInteractable) => m_interactable == t_newInteractable;
         private void ResetInteractable()
         {
-            m_holdingTimer = 0.0f;
+            holdingTimer = 0.0f;
             m_interactable = null;
         }
+
+
     }
 }
