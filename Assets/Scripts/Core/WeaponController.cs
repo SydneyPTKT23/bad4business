@@ -15,24 +15,21 @@ namespace SLC.Bad4Business.Core
         public float bulletSpreadAngle = 0.0f;
 
         public int bulletsPerShot = 1;
-
         public int bulletsPerClip = 1;
 
         public int maxAmmo;
-
+        
         public GameObject shellCasing;
         public Transform ejectionPoint;
 
         private int m_currentAmmo;
         private float m_nextTimeToFire = Mathf.NegativeInfinity;
 
-
         public GameObject Owner { get; set; }
         public GameObject SourcePrefab { get; set; }
         public bool IsWeaponActive { get; private set; }
 
-
-        public Camera m_cam;
+        public Camera m_weaponCamera;
 
         private void Start()
         {
@@ -67,13 +64,20 @@ namespace SLC.Bad4Business.Core
 
         private void Shoot()
         {
+            WeaponManager t_weaponManager = Owner.GetComponent<WeaponManager>();
+            if (t_weaponManager)
+            {
+                m_weaponCamera = t_weaponManager.weaponCamera;
+            }
+
             for (int i = 0; i < bulletsPerShot; i++)
             {
-                Debug.Log("test");
-                RaycastHit t_hitInfo = new();
-                if (Physics.Raycast(m_cam.transform.position, m_cam.transform.forward, out t_hitInfo, 100))
+                float t_angle = Random.Range(-bulletSpreadAngle, bulletSpreadAngle);
+                Vector3 t_direction = m_weaponCamera.transform.forward + new Vector3(t_angle, t_angle, 0);
+
+                if (Physics.Raycast(m_weaponCamera.transform.position, t_direction, out RaycastHit t_hitInfo, 100))
                 {
-                    
+                    Debug.Log(t_hitInfo.transform.name);
 
                     Health t_target = t_hitInfo.transform.GetComponent<Health>();
                     if (t_target != null)

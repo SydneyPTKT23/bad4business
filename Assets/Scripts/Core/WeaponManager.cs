@@ -7,6 +7,7 @@ namespace SLC.Bad4Business.Core
 {
     public class WeaponManager : MonoBehaviour
     {
+        [SerializeField] private Transform throwingParent;
         public List<WeaponController> startingWeapons = new();
 
         public Camera weaponCamera;
@@ -20,7 +21,6 @@ namespace SLC.Bad4Business.Core
         public UnityAction<WeaponController> OnSwitchdToWeapon;
         public UnityAction<WeaponController, int> OnAddedWeapon;
         public UnityAction<WeaponController, int> OnRemovedWeapon;
-
 
         public WeaponController[] m_weaponSlots = new WeaponController[2];
         private InputHandler m_inputHandler;
@@ -132,9 +132,6 @@ namespace SLC.Bad4Business.Core
 
         public bool AddWeapon(WeaponController t_weaponInstance)
         {
-
-
-
             // Search through weapon slots for an empty one.
             for (int i = 0; i < m_weaponSlots.Length; i++)
             {
@@ -160,6 +157,7 @@ namespace SLC.Bad4Business.Core
                     }
 
                     m_weaponSlots[i] = t_weaponInstance;
+                    t_weaponInstance.enabled = true;
 
                     if (OnAddedWeapon != null)
                     {
@@ -186,26 +184,31 @@ namespace SLC.Bad4Business.Core
                 if (m_weaponSlots[i] == t_weaponInstance)
                 {
                     m_weaponSlots[i] = null;
+                    t_weaponInstance.enabled = false;
 
                     if (OnRemovedWeapon != null)
                     {
                         OnRemovedWeapon.Invoke(t_weaponInstance, i);
                     }
 
-                    Rigidbody t_t_rigidBody = t_weaponInstance.GetComponent<Rigidbody>();
-                    t_t_rigidBody.isKinematic = false;
+                    Rigidbody t_rigidBody = t_weaponInstance.GetComponent<Rigidbody>();
+                    t_rigidBody.isKinematic = false;
 
                     t_weaponInstance.transform.SetParent(null);
-
-
-
-                    t_t_rigidBody.AddForce(weaponCamera.transform.forward * 4f, ForceMode.Impulse);
-                    t_t_rigidBody.AddForce(weaponCamera.transform.up * 4f, ForceMode.Impulse);
-
-                    float t_random = Random.Range(-1.0f, 1.0f);
-                    t_t_rigidBody.AddTorque(new Vector3(t_random, t_random, t_random) * 10f);
+                    t_weaponInstance.transform.position = throwingParent.position;
+                    t_weaponInstance.transform.rotation = Quaternion.identity;
 
                     t_weaponInstance.Owner = null;
+                    t_rigidBody.AddForce(weaponCamera.transform.forward * 4f, ForceMode.Impulse);
+                    t_rigidBody.AddForce(weaponCamera.transform.up * 4f, ForceMode.Impulse);
+
+                    float t_random = Random.Range(-1.0f, 1.0f);
+                    t_rigidBody.AddTorque(new Vector3(t_random, t_random, t_random) * 10f);
+
+                    foreach (Transform t_transform in t_weaponInstance.gameObject.GetComponentsInChildren<Transform>(true))
+                    {
+                        t_transform.gameObject.layer = 0;
+                    }
 
                     // Switch to next weapon when active weapon removed.
                     if (i == ActiveWeaponIndex)
