@@ -44,20 +44,8 @@ namespace SLC.Bad4Business.Core
 
                 if (t_interactable != null)
                 {
-                    if (m_interactable == null)
-                    {
-                        m_interactable = t_interactable;
-                        panel.SetLabel(t_interactable.TooltipMessage);
-                    }
-                    else
-                    {
-                        // Avoid issues with detecting the same interactable multiple times.
-                        if (!IsSameInteractable(t_interactable))
-                        {
-                            m_interactable = t_interactable;
-                            panel.SetLabel(t_interactable.TooltipMessage);
-                        }
-                    }           
+                    m_interactable = t_interactable;
+                    panel.SetLabel(t_interactable.TooltipMessage);
                 }
             }
             else
@@ -119,13 +107,10 @@ namespace SLC.Bad4Business.Core
             }
         }
 
-        private bool IsSameInteractable(InteractableBase t_newInteractable) => m_interactable == t_newInteractable;
         private void ResetInteractable()
         {
             holdingTimer = 0.0f;
             m_interactable = null;
         }
-
-
     }
 }
