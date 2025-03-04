@@ -38,7 +38,7 @@ namespace SLC.Bad4Business.Core
 
             foreach (WeaponController t_weapon in startingWeapons)
             {
-
+                _ = AddWeapon(t_weapon);
             }
 
 
@@ -130,7 +130,7 @@ namespace SLC.Bad4Business.Core
             }
         }
 
-        public bool AddWeapon(WeaponController t_weaponInstance)
+        public bool AddWeapon(WeaponController t_prefab)
         {
             // Search through weapon slots for an empty one.
             for (int i = 0; i < m_weaponSlots.Length; i++)
@@ -138,10 +138,7 @@ namespace SLC.Bad4Business.Core
                 // Only add the weapon if there is a free slot.
                 if (m_weaponSlots[i] == null)
                 {
-                    Rigidbody t_rigidBody = t_weaponInstance.GetComponent<Rigidbody>();
-                    t_rigidBody.isKinematic = true;
-
-                    t_weaponInstance.transform.SetParent(weaponParentSocket);
+                    WeaponController t_weaponInstance = Instantiate(t_prefab, weaponParentSocket);
                     t_weaponInstance.transform.localPosition = Vector3.zero;
                     t_weaponInstance.transform.localRotation = Quaternion.identity;
 
@@ -149,6 +146,8 @@ namespace SLC.Bad4Business.Core
                     t_weaponInstance.Owner = gameObject;
                     t_weaponInstance.SourcePrefab = t_weaponInstance.gameObject;
                     t_weaponInstance.ShowWeapon(false);
+
+                    t_weaponInstance.m_weaponCamera = weaponCamera;
 
                     // Assign the weapon to the viewmodel layer.
                     foreach (Transform t_transform in t_weaponInstance.gameObject.GetComponentsInChildren<Transform>(true))

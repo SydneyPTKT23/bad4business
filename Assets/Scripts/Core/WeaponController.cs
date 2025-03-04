@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace SLC.Bad4Business.Core
 {
@@ -22,6 +24,11 @@ namespace SLC.Bad4Business.Core
         public GameObject shellCasing;
         public Transform ejectionPoint;
 
+
+        public UnityAction OnShoot;
+        public event Action OnShootProcessed;
+
+
         private int m_currentAmmo;
         private float m_nextTimeToFire = Mathf.NegativeInfinity;
 
@@ -30,6 +37,12 @@ namespace SLC.Bad4Business.Core
         public bool IsWeaponActive { get; private set; }
 
         public Camera m_weaponCamera;
+
+
+        private AudioSource m_shootAudioSource;
+        public bool IsReloading { get; private set; }
+
+
 
         private void Start()
         {
@@ -64,20 +77,24 @@ namespace SLC.Bad4Business.Core
 
         private void Shoot()
         {
-            WeaponManager t_weaponManager = Owner.GetComponent<WeaponManager>();
+            /*WeaponManager t_weaponManager = Owner.GetComponent<WeaponManager>();
             if (t_weaponManager)
             {
                 m_weaponCamera = t_weaponManager.weaponCamera;
             }
+            */
 
             for (int i = 0; i < bulletsPerShot; i++)
             {
-                float t_angle = Random.Range(-bulletSpreadAngle, bulletSpreadAngle);
-                Vector3 t_direction = m_weaponCamera.transform.forward + new Vector3(t_angle, t_angle, 0);
+                Vector3 t_direction = GetDirectionWithinSpread(m_weaponCamera.transform);
 
+                Debug.DrawRay(m_weaponCamera.transform.position, t_direction * 100, Color.blue, 1.0f);
                 if (Physics.Raycast(m_weaponCamera.transform.position, t_direction, out RaycastHit t_hitInfo, 100))
                 {
+                    
+
                     Debug.Log(t_hitInfo.transform.name);
+                    
 
                     Health t_target = t_hitInfo.transform.GetComponent<Health>();
                     if (t_target != null)
@@ -86,6 +103,17 @@ namespace SLC.Bad4Business.Core
                     }
                 }
             }
+
+            OnShoot?.Invoke();
+            OnShootProcessed?.Invoke();
+        }
+
+        public Vector3 GetDirectionWithinSpread(Transform t_shootTransform)
+        {
+            float t_angleRatio = bulletSpreadAngle / 180.0f;
+            Vector3 t_spreadDirection = Vector3.Slerp(t_shootTransform.forward, UnityEngine.Random.insideUnitSphere, t_angleRatio);
+
+            return t_spreadDirection;
         }
     }
 }
