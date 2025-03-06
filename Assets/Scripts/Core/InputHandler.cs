@@ -1,39 +1,78 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace SLC.Bad4Business.Core
 {
-    public class InputHandler : MonoBehaviour
+    public class InputHandler : MonoBehaviour, PlayerControls.IGameActions
     {
-        private Vector2 m_inputVector;
-        public Vector2 InputVector => m_inputVector;
-        public bool InputDetected => m_inputVector != Vector2.zero;
+        public PlayerControls PlayerControls { get; private set; }
+        public PlayerControls.GameActions GameActions { get; private set; }
 
+        public Vector2 MouseDelta { get; private set; }
 
+        public Vector2 InputVector { get; private set; }
+        public bool InputDetected => InputVector != Vector2.zero;
 
-        public bool InteractClicked { get; set; }
-        public bool InteractedReleased { get; set; }
-
-
-        private void Update()
+        #region Built-In Methods
+        private void Awake()
         {
-            GetMovement();
-            GetInteraction();
+            if (PlayerControls != null)
+            {
+                return;
+            }
+
+            PlayerControls = new PlayerControls();
+            GameActions = PlayerControls.Game;
+        }
+
+        private void OnEnable()
+        {
+            GameActions.SetCallbacks(this);
+            PlayerControls.Enable();
+        }
+
+        private void OnDisable()
+        {
+            GameActions.RemoveCallbacks(this);
+            PlayerControls.Disable();
+        }
+        #endregion
+
+        public void OnJump(InputAction.CallbackContext t_context)
+        {
+
+        }
+
+        public void OnMove(InputAction.CallbackContext t_context)
+        {
+            InputVector = t_context.ReadValue<Vector2>();
+        }
+
+        public void OnLook(InputAction.CallbackContext t_context)
+        {
+            MouseDelta = t_context.ReadValue<Vector2>();
+        }
+
+        public void OnShoot(InputAction.CallbackContext t_context)
+        {
+
         }
 
 
-        private void GetMovement()
+
+        public void DisableActionFor(InputAction t_action, float t_seconds)
         {
-            m_inputVector.x = Input.GetAxisRaw("Horizontal");
-            m_inputVector.y = Input.GetAxisRaw("Vertical");
-
-
-
+            StartCoroutine(DisableAction(t_action, t_seconds));
         }
 
-        private void GetInteraction()
+        private IEnumerator DisableAction(InputAction t_action, float t_seconds)
         {
-            InteractClicked = Input.GetKeyDown(KeyCode.E);
-            InteractedReleased = Input.GetKeyUp(KeyCode.E);
+            t_action.Disable();
+
+            yield return new WaitForSeconds(t_seconds);
+
+            t_action.Enable();
         }
     }
 }

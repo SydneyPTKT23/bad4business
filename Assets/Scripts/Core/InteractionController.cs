@@ -67,7 +67,7 @@ namespace SLC.Bad4Business.Core
         {
             if (m_interactable == null)
                 return;
-
+            /*
             if (m_inputHandler.InteractClicked)
             {
                 isInteracting = true;
@@ -80,7 +80,7 @@ namespace SLC.Bad4Business.Core
                 holdingTimer = 0.0f;
                 panel.UpdateProgressBar(0.0f);
             }
-
+            */
             if (isInteracting)
             {
                 if (!m_interactable.IsInteractable)

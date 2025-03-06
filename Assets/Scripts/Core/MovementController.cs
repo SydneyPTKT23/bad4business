@@ -4,47 +4,63 @@ using UnityEngine;
 
 namespace SLC.Bad4Business.Core
 {
+    [RequireComponent(typeof(Rigidbody))]
     public class MovementController : MonoBehaviour
     {
+        [System.Serializable]
+        public struct MovementSettings
+        {
+            [Tooltip("The speed the motor will reach through it's own acceleration")]
+            public float TopSpeed;
+            [Tooltip("How fast the motor will reach top speed")]
+            public float Acceleration;
+            [Tooltip("How fast the motor will stop when no input is given")]
+            public float Deceleration;
+        }
+
+        public bool readyToJump;
+        public float groundDrag;
+
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7.0f;
         [SerializeField] private float jumpForce = 10.0f;
 
-        [Space, Header("Ground Settings")]
-        [SerializeField] private float gravityMultiplier = 2.5f;
-        [SerializeField] private float stickToGroundForce = 5.0f;
-        [Space]
+        [Header("Gravity Settings")]
         [SerializeField] private LayerMask groundLayer = ~0;
         [SerializeField] private float rayLength = 0.1f;
         [SerializeField] private float raySphereRadius = 0.1f;
 
-        private CharacterController m_characterController;
+
+
+        private Rigidbody m_rigidBody;
         private InputHandler m_inputHandler;
         private Health m_health;
+
+        private CapsuleCollider m_collider;
 
         private RaycastHit m_hitInfo;
 
         [Space, Header("DEBUG")]
-        [SerializeField] private Vector2 m_inputVector;
-        [SerializeField] private Vector3 m_finalMoveVector;
-        [Space]
-        [SerializeField] private float m_currentSpeed;
-        [Space]
+
+        public Vector3 movementDirection;
+
+        public bool m_isGrounded;
         [SerializeField] private float m_finalRayLength;
-        [SerializeField] private bool m_isGrounded;
 
         public float killHeight = -50.0f;
         public bool IsDead { get; private set; }
 
         private void Start()
         {
-            m_characterController = GetComponent<CharacterController>();
+            m_rigidBody = GetComponent<Rigidbody>();
             m_inputHandler = GetComponent<InputHandler>();
 
             m_health = GetComponent<Health>();
             m_health.OnDie += OnDie;
 
-            m_finalRayLength = rayLength + m_characterController.center.y;
+            m_collider = GetComponent<CapsuleCollider>();
+            m_finalRayLength = rayLength + m_collider.center.y;
+
             m_isGrounded = true;
         }
 
@@ -56,17 +72,27 @@ namespace SLC.Bad4Business.Core
                 m_health.Kill();
             }
 
-            if (m_characterController)
+            if (m_rigidBody)
             {
                 CheckIfGrounded();
+                SpeedControl();
 
-                HandleMovement();
+                if (Input.GetKeyDown(KeyCode.Space) && readyToJump && m_isGrounded)
+                {
+                    readyToJump = false;
 
-                CalculateMovementSpeed();
-                AddDownForce();
+                    Jump();
 
-                AddMovement();
+                    ResetJump();
+                }
+
+                m_rigidBody.drag = m_isGrounded ? groundDrag : 0f;
             }
+        }
+
+        private void FixedUpdate()
+        {
+            Movement();
         }
 
         private void OnDie()
@@ -77,7 +103,7 @@ namespace SLC.Bad4Business.Core
         private void CheckIfGrounded()
         {
             // Manually check for grounded because the CharacterController default is less reliable.
-            Vector3 t_origin = transform.position + m_characterController.center;
+            Vector3 t_origin = transform.position + m_collider.center;
             bool t_hitGround = Physics.SphereCast(t_origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
 
             // Draw the groundcheck for convenience.
@@ -85,63 +111,35 @@ namespace SLC.Bad4Business.Core
             m_isGrounded = t_hitGround;
         }
 
-        private void HandleMovement()
+        private void Jump()
         {
-            m_inputVector = m_inputHandler.InputVector.normalized;
+            m_rigidBody.velocity = new Vector3(m_rigidBody.velocity.x, 0f, m_rigidBody.velocity.z);
 
-            Vector3 t_desiredDirection = transform.forward * m_inputVector.y + transform.right * m_inputVector.x;
-            Vector3 t_flatDirection = FlattenVectorOnSlopes(t_desiredDirection);
-
-            Vector3 t_finalVector = m_currentSpeed * t_flatDirection;
-
-            m_finalMoveVector.x = t_finalVector.x;
-            m_finalMoveVector.z = t_finalVector.z;
-
-            if (m_characterController.isGrounded)
-                m_finalMoveVector.y += t_finalVector.y;
+            m_rigidBody.AddForce(transform.up * jumpForce, ForceMode.Impulse);
         }
 
-        private Vector3 FlattenVectorOnSlopes(Vector3 t_flattenedVector)
+        private void ResetJump()
         {
-            // Correct movement on slopes to keep speed consistent.
-            if (m_isGrounded)
-                t_flattenedVector = Vector3.ProjectOnPlane(t_flattenedVector, m_hitInfo.normal);
-
-            return t_flattenedVector;
+            readyToJump = true;
         }
 
-        private void CalculateMovementSpeed()
+        private void SpeedControl()
         {
-            m_currentSpeed = !m_inputHandler.InputDetected ? 0.0f : moveSpeed;
-        }
+            Vector3 t_flatVelocity = new(m_rigidBody.velocity.x, 0f, m_rigidBody.velocity.z);
 
-        private void HandleBounce()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
+            // Manually limit velocity to not go beyond the movement speed maximum.
+            if(t_flatVelocity.magnitude > moveSpeed)
             {
-                m_finalMoveVector.y = jumpForce;
-
-                m_isGrounded = false;
+                Vector3 t_desiredVelocity = t_flatVelocity.normalized * moveSpeed;
+                m_rigidBody.velocity = new Vector3(t_desiredVelocity.x, m_rigidBody.velocity.y, t_desiredVelocity.z);
             }
         }
 
-        private void AddDownForce()
+        private void Movement()
         {
-            // If grounded, add a little bit of extra downward force just in case.
-            if (m_characterController.isGrounded)
-            {
-                m_finalMoveVector.y = -stickToGroundForce;
-                HandleBounce();
-            }
-            else
-            {
-                m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
-            }
-        }
+            movementDirection = transform.forward * m_inputHandler.InputVector.y + transform.right * m_inputHandler.InputVector.x;
 
-        private void AddMovement()
-        {
-            m_characterController.Move(m_finalMoveVector * Time.deltaTime);
+            m_rigidBody.AddForce(10f * moveSpeed * movementDirection, ForceMode.Force);
         }
     }
 }
