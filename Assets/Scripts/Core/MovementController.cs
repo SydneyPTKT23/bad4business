@@ -4,95 +4,104 @@ using UnityEngine;
 
 namespace SLC.Bad4Business.Core
 {
-    [RequireComponent(typeof(Rigidbody))]
     public class MovementController : MonoBehaviour
     {
-        [System.Serializable]
-        public struct MovementSettings
-        {
-            [Tooltip("The speed the motor will reach through it's own acceleration")]
-            public float TopSpeed;
-            [Tooltip("How fast the motor will reach top speed")]
-            public float Acceleration;
-            [Tooltip("How fast the motor will stop when no input is given")]
-            public float Deceleration;
-        }
-
-        public bool readyToJump;
-        public float groundDrag;
-
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7.0f;
         [SerializeField] private float jumpForce = 10.0f;
 
-        [Header("Gravity Settings")]
+        [SerializeField] private float dashSpeed = 15.0f;
+        [SerializeField] private float dashDuration = 0.3f;
+        [SerializeField] private int maxDashes = 2;
+        [SerializeField] private float dashRechargeTime = 2.0f;
+
+        [Space, Header("Ground Settings")]
+        [SerializeField] private float gravityMultiplier = 2.5f;
+        [SerializeField] private float stickToGroundForce = 5.0f;
+        [Space]
         [SerializeField] private LayerMask groundLayer = ~0;
         [SerializeField] private float rayLength = 0.1f;
         [SerializeField] private float raySphereRadius = 0.1f;
 
+        [Space, Header("Smooth")]
+        [SerializeField] private float smoothInputSpeed = 10.0f;
+        [SerializeField] private float smoothVelocitySpeed = 10.0f;
+        [SerializeField] private float smoothFinalDirectionSpeed = 10.0f;
 
-
-        private Rigidbody m_rigidBody;
+        private CharacterController m_characterController;
         private InputHandler m_inputHandler;
         private Health m_health;
-
-        private CapsuleCollider m_collider;
 
         private RaycastHit m_hitInfo;
 
         [Space, Header("DEBUG")]
+        [SerializeField] private Vector2 m_inputVector;
+        [SerializeField] private Vector2 m_smoothInputVector;
 
-        public Vector3 movementDirection;
+        [Space]
+        [SerializeField] private Vector3 m_smoothFinalMoveDir;
+        [SerializeField] private Vector3 m_finalMoveVector;
 
-        public bool m_isGrounded;
+        [Space]
+        [SerializeField] private float m_currentSpeed;
+        [SerializeField] private float m_smoothCurrentSpeed;
+
+        [Space]
         [SerializeField] private float m_finalRayLength;
+        [SerializeField] private bool m_isGrounded;
+        [SerializeField] private bool m_previouslyGrounded;
+        [SerializeField] private bool m_isDashing;
+        [SerializeField] private int m_dashCount;
 
-        public float killHeight = -50.0f;
+        [SerializeField] private bool isRegeneratingDash = false;
+
+        [SerializeField] private float m_inAirTimer;
+
+        private readonly float killHeight = -50.0f;
         public bool IsDead { get; private set; }
 
         private void Start()
         {
-            m_rigidBody = GetComponent<Rigidbody>();
+            m_characterController = GetComponent<CharacterController>();
             m_inputHandler = GetComponent<InputHandler>();
 
             m_health = GetComponent<Health>();
             m_health.OnDie += OnDie;
 
-            m_collider = GetComponent<CapsuleCollider>();
-            m_finalRayLength = rayLength + m_collider.center.y;
-
-            m_isGrounded = true;
+            m_finalRayLength = rayLength + m_characterController.center.y;
         }
 
         private void Update()
         {
+            if (IsDead) return;
+
             // Autokill player if they manage to fall out of the map to prevent softlocking.
             if (!IsDead && transform.position.y < killHeight)
             {
                 m_health.Kill();
             }
 
-            if (m_rigidBody)
+            SmoothDirection();
+            SmoothInput();
+            SmoothSpeed();
+
+            CheckIfGrounded();
+
+            if (!m_isDashing)
             {
-                CheckIfGrounded();
-                SpeedControl();
-
-                if (Input.GetKeyDown(KeyCode.Space) && readyToJump && m_isGrounded)
-                {
-                    readyToJump = false;
-
-                    Jump();
-
-                    ResetJump();
-                }
-
-                m_rigidBody.drag = m_isGrounded ? groundDrag : 0f;
+                HandleMovement();
+                HandleJump();
             }
-        }
 
-        private void FixedUpdate()
-        {
-            Movement();
+            HandleDash();
+
+            ApplyGravity();
+            ApplyMovement();
+
+            if (m_isGrounded && !IsInvoking(nameof(RegenerateDash)))
+            {
+                InvokeRepeating(nameof(RegenerateDash), dashRechargeTime, dashRechargeTime);
+            }
         }
 
         private void OnDie()
@@ -103,43 +112,101 @@ namespace SLC.Bad4Business.Core
         private void CheckIfGrounded()
         {
             // Manually check for grounded because the CharacterController default is less reliable.
-            Vector3 t_origin = transform.position + m_collider.center;
-            bool t_hitGround = Physics.SphereCast(t_origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
+            Vector3 t_origin = transform.position + m_characterController.center;
+            m_isGrounded = Physics.SphereCast(t_origin, raySphereRadius, Vector3.down, out m_hitInfo, m_finalRayLength, groundLayer);
 
-            // Draw the groundcheck for convenience.
+            #if UNITY_EDITOR
             Debug.DrawRay(t_origin, Vector3.down * rayLength, Color.red);
-            m_isGrounded = t_hitGround;
+            #endif
         }
 
-        private void Jump()
+        private void SmoothInput()
         {
-            m_rigidBody.velocity = new Vector3(m_rigidBody.velocity.x, 0f, m_rigidBody.velocity.z);
-
-            m_rigidBody.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            m_inputVector = m_inputHandler.InputVector.normalized;
+            m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, Time.deltaTime * smoothInputSpeed);
         }
 
-        private void ResetJump()
+        private void SmoothSpeed()
         {
-            readyToJump = true;
+            m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, Time.deltaTime * smoothVelocitySpeed);
         }
 
-        private void SpeedControl()
+        private void SmoothDirection()
         {
-            Vector3 t_flatVelocity = new(m_rigidBody.velocity.x, 0f, m_rigidBody.velocity.z);
+            m_smoothFinalMoveDir = Vector3.Lerp(m_smoothFinalMoveDir, m_finalMoveVector, Time.deltaTime * smoothFinalDirectionSpeed);
+        }
 
-            // Manually limit velocity to not go beyond the movement speed maximum.
-            if(t_flatVelocity.magnitude > moveSpeed)
+        private void HandleMovement()
+        {
+            Vector3 t_movementDirection = (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x);
+            
+            if (m_isGrounded)
+                t_movementDirection = Vector3.ProjectOnPlane(t_movementDirection, m_hitInfo.normal);
+
+            t_movementDirection *= m_smoothCurrentSpeed;
+
+            m_finalMoveVector = new Vector3(t_movementDirection.x, m_finalMoveVector.y, t_movementDirection.z);
+
+            if (m_isGrounded)
+                m_finalMoveVector.y = Mathf.Max(m_finalMoveVector.y, -stickToGroundForce);
+        }
+
+        private void HandleDash()
+        {
+            if (Input.GetKeyDown(KeyCode.LeftShift) && m_dashCount > 0)
             {
-                Vector3 t_desiredVelocity = t_flatVelocity.normalized * moveSpeed;
-                m_rigidBody.velocity = new Vector3(t_desiredVelocity.x, m_rigidBody.velocity.y, t_desiredVelocity.z);
+                StartCoroutine(DashRoutine());
             }
         }
 
-        private void Movement()
+        private IEnumerator DashRoutine()
         {
-            movementDirection = transform.forward * m_inputHandler.InputVector.y + transform.right * m_inputHandler.InputVector.x;
+            m_isDashing = true;
+            m_dashCount--;
 
-            m_rigidBody.AddForce(10f * moveSpeed * movementDirection, ForceMode.Force);
+            Vector3 t_dashDirection = (m_inputVector.sqrMagnitude > 0)
+                ? ((transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x)).normalized
+                : transform.forward;
+
+            m_finalMoveVector = t_dashDirection * dashSpeed;
+
+            yield return new WaitForSeconds(dashDuration);
+
+            m_isDashing = false;
+        }
+
+        private void RegenerateDash()
+        {
+            if (m_dashCount < maxDashes)
+            {
+                m_dashCount++;
+            }
+            else
+            {
+                CancelInvoke(nameof(RegenerateDash));
+            }
+        }
+
+        private void HandleJump()
+        {
+            if (m_isGrounded && Input.GetKeyDown(KeyCode.Space))
+            {
+                m_finalMoveVector.y = jumpForce;
+                m_isGrounded = false;
+            }
+        }
+
+        private void ApplyGravity()
+        {
+            if (!m_isGrounded && m_finalMoveVector.y > Physics.gravity.y)
+            {
+                m_finalMoveVector += gravityMultiplier * Time.deltaTime * Physics.gravity;
+            }
+        }
+
+        private void ApplyMovement()
+        {
+            m_characterController.Move(m_finalMoveVector * Time.deltaTime);
         }
     }
 }

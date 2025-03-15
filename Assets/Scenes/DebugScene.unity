@@ -170,7 +170,6 @@ GameObject:
   - component: {fileID: 82774494}
   - component: {fileID: 82774500}
   - component: {fileID: 82774501}
-  - component: {fileID: 82774503}
   - component: {fileID: 82774502}
   m_Layer: 0
   m_Name: Player
@@ -205,19 +204,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b4afd60855760b4eab972a1eb62cc27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  readyToJump: 0
-  groundDrag: 5
   moveSpeed: 7
   jumpForce: 8
+  dashSpeed: 30
+  dashDuration: 0.15
+  maxDashes: 2
+  dashRechargeTime: 1
+  gravityMultiplier: 2.5
+  stickToGroundForce: 5
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
   rayLength: 1
   raySphereRadius: 0.2
-  movementDirection: {x: 0, y: 0, z: 0}
-  m_isGrounded: 0
+  smoothInputSpeed: 10
+  smoothVelocitySpeed: 10
+  smoothFinalDirectionSpeed: 10
+  m_inputVector: {x: 0, y: 0}
+  m_smoothInputVector: {x: 0, y: 0}
+  m_smoothFinalMoveDir: {x: 0, y: 0, z: 0}
+  m_finalMoveVector: {x: 0, y: 0, z: 0}
+  m_currentSpeed: 10
+  m_smoothCurrentSpeed: 0
   m_finalRayLength: 0
-  killHeight: -50
+  m_isGrounded: 0
+  m_previouslyGrounded: 0
+  m_isDashing: 0
+  m_dashCount: 0
+  isRegeneratingDash: 0
+  m_inAirTimer: 0
 --- !u!114 &82774496
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -288,35 +303,8 @@ MonoBehaviour:
     m_Bits: 1
   m_weaponSlots:
   - {fileID: 0}
---- !u!54 &82774502
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 82774492}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 1
-  m_Constraints: 112
-  m_CollisionDetection: 1
---- !u!136 &82774503
-CapsuleCollider:
+--- !u!143 &82774502
+CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -333,10 +321,13 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
+  serializedVersion: 3
   m_Height: 2
-  m_Direction: 1
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &148901938
 GameObject:
@@ -1056,7 +1047,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2013721474}
   m_Father: {fileID: 82774497}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1473105071
@@ -1287,7 +1279,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1714568745
 Transform:
   m_ObjectHideFlags: 0
@@ -1573,7 +1565,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 963194228}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1301134104}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2013721475
 MonoBehaviour:
@@ -1588,8 +1580,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   handler: {fileID: 82774496}
-  pivot: {fileID: 1301134104}
-  sensitivity: 6
+  sensitivity: 10
   m_player: {fileID: 82774497}
 --- !u!1 &2032680101
 GameObject:
@@ -1790,4 +1781,3 @@ SceneRoots:
   - {fileID: 2032680105}
   - {fileID: 2084659322}
   - {fileID: 82774497}
-  - {fileID: 2013721474}

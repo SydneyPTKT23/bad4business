@@ -41,7 +41,7 @@ namespace SLC.Bad4Business.Core
 
         public void OnJump(InputAction.CallbackContext t_context)
         {
-
+            
         }
 
         public void OnMove(InputAction.CallbackContext t_context)
