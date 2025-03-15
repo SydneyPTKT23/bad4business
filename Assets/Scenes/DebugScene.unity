@@ -324,12 +324,15 @@ MonoBehaviour:
   raySphereRadius: 0.2
   wallRunGravity: 1
   wallRunSpeed: 10
-  wallJumpForce: 12
+  wallJumpForce: 15
   maxWallRunTime: 2
   wallRunRayLength: 0.7
   wallLayer:
     serializedVersion: 2
     m_Bits: 1
+  isWallRunning: 0
+  wallJumpDuration: 0.2
+  isWallJumping: 0
   smoothInputSpeed: 10
   smoothVelocitySpeed: 10
   smoothFinalDirectionSpeed: 10

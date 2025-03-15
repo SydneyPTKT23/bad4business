@@ -10,6 +10,7 @@ namespace SLC.Bad4Business.Core
         [SerializeField] private float moveSpeed = 7.0f;
         [SerializeField] private float jumpForce = 10.0f;
 
+        [Header("Dash Settings")]
         [SerializeField] private float dashSpeed = 15.0f;
         [SerializeField] private float dashDuration = 0.3f;
         [SerializeField] private int maxDashes = 2;
@@ -31,9 +32,13 @@ namespace SLC.Bad4Business.Core
         [SerializeField] private float wallRunRayLength = 0.7f;
         [SerializeField] private LayerMask wallLayer;
 
-        private bool isWallRunning;
+        public bool isWallRunning;
         private float wallRunTimer;
         private Vector3 wallNormal;
+
+        [SerializeField] private float wallJumpDuration = 0.2f; // Prevents movement override
+        private float wallJumpTimer;
+        public bool isWallJumping;
 
         [Space, Header("Smooth")]
         [SerializeField] private float smoothInputSpeed = 10.0f;
@@ -81,8 +86,8 @@ namespace SLC.Bad4Business.Core
             m_health = GetComponent<Health>();
             m_health.OnDie += OnDie;
 
-            //m_inputHandler.OnJumpPressed += HandleJump;
-            //m_inputHandler.OnDashPressed += HandleDash;
+            m_inputHandler.OnJumpPressed += HandleJump;
+            m_inputHandler.OnDashPressed += HandleDash;
 
             m_finalRayLength = rayLength + m_characterController.center.y;
             m_dashCount = maxDashes;
@@ -92,18 +97,19 @@ namespace SLC.Bad4Business.Core
         {
             if (IsDead) return;
 
-            // Autokill player if they manage to fall out of the map to prevent softlocking.
-            if (!IsDead && transform.position.y < killHeight)
-            {
-                m_health.Kill();
-            }
-
-            SmoothDirection();
-            SmoothInput();
-            SmoothSpeed();
+            SmoothMovementParameters();
 
             CheckIfGrounded();
-            CheckWallRun();
+            CheckForWallRun();
+
+            if (wallJumpTimer > 0)
+            {
+                wallJumpTimer -= Time.deltaTime;
+            }
+            else
+            {
+                isWallJumping = false;
+            }
 
             if (!m_isDashing)
             {
@@ -114,20 +120,27 @@ namespace SLC.Bad4Business.Core
                 else
                 {
                     HandleMovement();
-                    HandleJump();
-                }              
+                }
             }
-
-            HandleDash();
 
             if (!isWallRunning)
                 ApplyGravity();
 
             ApplyMovement();
 
-            if (m_isGrounded && !IsInvoking(nameof(RegenerateDash)))
+            if (m_isGrounded && !isRegeneratingDash)
             {
+                isRegeneratingDash = true;
                 InvokeRepeating(nameof(RegenerateDash), dashRechargeTime, dashRechargeTime);
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            // Autokill player if they manage to fall out of the map to prevent softlocking.
+            if (!IsDead && transform.position.y < killHeight)
+            {
+                m_health.Kill();
             }
         }
 
@@ -147,7 +160,7 @@ namespace SLC.Bad4Business.Core
             #endif
         }
 
-        private void CheckWallRun()
+        private void CheckForWallRun()
         {
             if (m_isGrounded || m_finalMoveVector.y > 0)
             {
@@ -155,13 +168,12 @@ namespace SLC.Bad4Business.Core
                 return;
             }
 
-            RaycastHit leftHit, rightHit;
-            bool leftWall = Physics.Raycast(transform.position, -transform.right, out leftHit, wallRunRayLength, wallLayer);
-            bool rightWall = Physics.Raycast(transform.position, transform.right, out rightHit, wallRunRayLength, wallLayer);
+            bool t_leftWall = Physics.Raycast(transform.position, -transform.right, out RaycastHit t_leftHit, wallRunRayLength, wallLayer);
+            bool t_rightWall = Physics.Raycast(transform.position, transform.right, out RaycastHit t_rightHit, wallRunRayLength, wallLayer);
 
-            if (leftWall || rightWall && m_inputVector != Vector2.zero)
+            if (m_inputVector != Vector2.zero && (t_leftWall || t_rightWall))
             {
-                wallNormal = leftWall ? leftHit.normal : rightHit.normal;
+                wallNormal = t_leftWall ? t_leftHit.normal : t_rightHit.normal;
                 isWallRunning = true;
                 wallRunTimer = maxWallRunTime;
             }
@@ -171,31 +183,23 @@ namespace SLC.Bad4Business.Core
             }
         }
 
-        private void SmoothInput()
+        private void SmoothMovementParameters()
         {
-            m_inputVector = m_inputHandler.InputVector.normalized;
+            m_inputVector = m_inputHandler.InputVector;
             m_smoothInputVector = Vector2.Lerp(m_smoothInputVector, m_inputVector, Time.deltaTime * smoothInputSpeed);
-        }
-
-        private void SmoothSpeed()
-        {
             m_smoothCurrentSpeed = Mathf.Lerp(m_smoothCurrentSpeed, m_currentSpeed, Time.deltaTime * smoothVelocitySpeed);
-        }
-
-        private void SmoothDirection()
-        {
             m_smoothFinalMoveDir = Vector3.Lerp(m_smoothFinalMoveDir, m_finalMoveVector, Time.deltaTime * smoothFinalDirectionSpeed);
         }
 
         private void HandleMovement()
         {
-            Vector3 t_movementDirection = (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x);
-            
-            if (m_isGrounded)
-                t_movementDirection = Vector3.ProjectOnPlane(t_movementDirection, m_hitInfo.normal);
+            if (isWallJumping) return;
 
-            t_movementDirection *= m_smoothCurrentSpeed;
-            m_finalMoveVector = new Vector3(t_movementDirection.x, m_finalMoveVector.y, t_movementDirection.z);
+            Vector3 t_movementDir = (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x);
+            float t_interpolationSpeed = m_isGrounded ? 1.0f : (isWallJumping ? 2.0f : 8.0f);
+
+            m_finalMoveVector.x = Mathf.Lerp(m_finalMoveVector.x, t_movementDir.x * m_smoothCurrentSpeed, Time.deltaTime * t_interpolationSpeed);
+            m_finalMoveVector.z = Mathf.Lerp(m_finalMoveVector.z, t_movementDir.z * m_smoothCurrentSpeed, Time.deltaTime * t_interpolationSpeed);
 
             if (m_isGrounded)
             {
@@ -211,32 +215,29 @@ namespace SLC.Bad4Business.Core
                 isWallRunning = false;
                 return;
             }
-            wallRunTimer -= Time.deltaTime;
-            Vector3 moveAlongWall = (Vector3.Cross(wallNormal, Vector3.up) * (Vector3.Dot(transform.right, wallNormal) > 0 ? 1 : -1)).normalized * wallRunSpeed;
-            m_finalMoveVector = new Vector3(moveAlongWall.x, -wallRunGravity, moveAlongWall.z);
+
+            Vector3.Cross(wallNormal, Vector3.up).Normalize();
+            float wallDirection = Vector3.Dot(transform.right, wallNormal) > 0 ? 1 : -1;
+            m_finalMoveVector.Set(wallNormal.x * wallDirection * wallRunSpeed, -wallRunGravity, wallNormal.z * wallDirection * wallRunSpeed);
         }
 
         private void HandleDash()
         {
-            if (m_dashCount > 0 && Input.GetKeyDown(KeyCode.LeftShift))
-            {
-                StartCoroutine(DashRoutine());
-            }
-        }
+            if (m_dashCount <= 0) return;
 
-        private IEnumerator DashRoutine()
-        {
-            m_isDashing = true;
             m_dashCount--;
+            m_isDashing = true;
 
-            Vector3 t_dashDirection = (m_inputVector.sqrMagnitude > 0)
-                ? ((transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x)).normalized
-                : transform.forward;
+            Vector3 t_dashDirection = m_inputVector.sqrMagnitude > 0 ?
+                (transform.forward * m_smoothInputVector.y + transform.right * m_smoothInputVector.x).normalized : transform.forward;
 
             m_finalMoveVector = t_dashDirection * dashSpeed;
 
-            yield return new WaitForSeconds(dashDuration);
+            Invoke(nameof(EndDash), dashDuration);
+        }
 
+        private void EndDash()
+        {
             m_isDashing = false;
         }
 
@@ -248,17 +249,32 @@ namespace SLC.Bad4Business.Core
             }
             else
             {
+                isRegeneratingDash = false;
                 CancelInvoke(nameof(RegenerateDash));
             }
         }
 
         private void HandleJump()
         {
-            if (m_isGrounded && Input.GetKeyDown(KeyCode.Space))
+            if (m_isGrounded && !m_isDashing)
             {
                 m_finalMoveVector.y = jumpForce;
                 m_isGrounded = false;
             }
+            else if (isWallRunning && !m_isDashing)
+            {
+                WallJump();
+            }
+        }
+
+        private void WallJump()
+        {
+            isWallJumping = true;
+            wallJumpTimer = wallJumpDuration;
+
+            // Calculate push-off direction
+            Vector3 wallJumpDirection = wallNormal * wallJumpForce + Vector3.up * jumpForce;
+            m_finalMoveVector = wallJumpDirection;
         }
 
         private void ApplyGravity()
