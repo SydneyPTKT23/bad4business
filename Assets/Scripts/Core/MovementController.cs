@@ -4,10 +4,18 @@ using UnityEngine;
 
 namespace SLC.Bad4Business.Core
 {
+    /// <summary>
+    /// Controls player movement, including walking, dashing, jumping, and wall-running.
+    /// Uses CharacterController for physics interactions.
+    /// </summary>
+    [RequireComponent(typeof(CharacterController))]
     public class MovementController : MonoBehaviour
     {
         [Header("Movement Settings")]
+        [Tooltip("Base movement speed of the player.")]
         [SerializeField] private float moveSpeed = 7.0f;
+
+        [Tooltip("Jump force applied when the player jumps.")]
         [SerializeField] private float jumpForce = 10.0f;
 
         [Header("Dash Settings")]
@@ -36,7 +44,7 @@ namespace SLC.Bad4Business.Core
         private float wallRunTimer;
         private Vector3 wallNormal;
 
-        [SerializeField] private float wallJumpDuration = 0.2f; // Prevents movement override
+        [SerializeField] private float wallJumpDuration = 0.2f;
         private float wallJumpTimer;
         public bool isWallJumping;
 
@@ -162,7 +170,7 @@ namespace SLC.Bad4Business.Core
 
         private void CheckForWallRun()
         {
-            if (m_isGrounded || m_finalMoveVector.y > 0)
+            if (m_isGrounded || m_finalMoveVector.y > jumpForce * 0.2f)
             {
                 isWallRunning = false;
                 return;
@@ -173,9 +181,13 @@ namespace SLC.Bad4Business.Core
 
             if (m_inputVector != Vector2.zero && (t_leftWall || t_rightWall))
             {
+                if (!isWallRunning) // Reset only when first starting
+                {
+                    wallRunTimer = maxWallRunTime;
+                }
+
                 wallNormal = t_leftWall ? t_leftHit.normal : t_rightHit.normal;
                 isWallRunning = true;
-                wallRunTimer = maxWallRunTime;
             }
             else
             {
@@ -195,16 +207,22 @@ namespace SLC.Bad4Business.Core
         {
             if (isWallJumping) return;
 
-            Vector3 t_movementDir = (transform.forward * m_smoothInputVector.y) + (transform.right * m_smoothInputVector.x);
-            float t_interpolationSpeed = m_isGrounded ? 1.0f : (isWallJumping ? 2.0f : 8.0f);
-
-            m_finalMoveVector.x = Mathf.Lerp(m_finalMoveVector.x, t_movementDir.x * m_smoothCurrentSpeed, Time.deltaTime * t_interpolationSpeed);
-            m_finalMoveVector.z = Mathf.Lerp(m_finalMoveVector.z, t_movementDir.z * m_smoothCurrentSpeed, Time.deltaTime * t_interpolationSpeed);
-
             if (m_isGrounded)
             {
+                Vector3 t_moveDirection = Vector3.ProjectOnPlane((transform.forward * m_smoothInputVector.y) + (transform.right * 
+                    m_smoothInputVector.x), m_hitInfo.normal);
+                m_finalMoveVector = new Vector3(t_moveDirection.x * m_smoothCurrentSpeed, m_finalMoveVector.y, t_moveDirection.z * m_smoothCurrentSpeed);
+
                 m_inAirTimer = 0.0f;
                 m_finalMoveVector.y = Mathf.Max(m_finalMoveVector.y, -stickToGroundForce);
+            }
+            else
+            {
+                float t_airControlSpeed = isWallJumping ? 2.0f : 8.0f;
+                m_finalMoveVector.x = Mathf.Lerp(m_finalMoveVector.x, (transform.forward * m_smoothInputVector.y + transform.right * 
+                    m_smoothInputVector.x).x * m_smoothCurrentSpeed, Time.deltaTime * t_airControlSpeed);
+                m_finalMoveVector.z = Mathf.Lerp(m_finalMoveVector.z, (transform.forward * m_smoothInputVector.y + transform.right * 
+                    m_smoothInputVector.x).z * m_smoothCurrentSpeed, Time.deltaTime * t_airControlSpeed);
             }
         }
 
@@ -216,9 +234,12 @@ namespace SLC.Bad4Business.Core
                 return;
             }
 
-            Vector3.Cross(wallNormal, Vector3.up).Normalize();
-            float wallDirection = Vector3.Dot(transform.right, wallNormal) > 0 ? 1 : -1;
-            m_finalMoveVector.Set(wallNormal.x * wallDirection * wallRunSpeed, -wallRunGravity, wallNormal.z * wallDirection * wallRunSpeed);
+            Vector3 t_wallForward = Vector3.Cross(wallNormal, Vector3.up).normalized;
+            if (Vector3.Dot(transform.forward, t_wallForward) < 0) // Ensure the correct direction
+                t_wallForward = -t_wallForward;
+
+            m_finalMoveVector = t_wallForward * wallRunSpeed;
+            m_finalMoveVector.y = -wallRunGravity;
         }
 
         private void HandleDash()
@@ -273,12 +294,14 @@ namespace SLC.Bad4Business.Core
             wallJumpTimer = wallJumpDuration;
 
             // Calculate push-off direction
-            Vector3 wallJumpDirection = wallNormal * wallJumpForce + Vector3.up * jumpForce;
-            m_finalMoveVector = wallJumpDirection;
+            Vector3 t_jumpDirection = (wallNormal * wallJumpForce) + (Vector3.up * jumpForce);
+            m_finalMoveVector = t_jumpDirection;
         }
 
         private void ApplyGravity()
         {
+            if (m_isDashing) return;
+
             if (!m_isGrounded && m_finalMoveVector.y > Physics.gravity.y)
             {
                 m_inAirTimer += Time.deltaTime;

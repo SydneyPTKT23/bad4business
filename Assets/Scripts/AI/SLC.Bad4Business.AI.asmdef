@@ -1,0 +1,16 @@
+{
+    "name": "SLC.Bad4Business.AI",
+    "rootNamespace": "SLC.Bad4Business.AI",
+    "references": [
+        "GUID:1f0f2e98bd9fe5d47b69128addecc7fc"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

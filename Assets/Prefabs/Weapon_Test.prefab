@@ -82,7 +82,7 @@ MonoBehaviour:
   weaponRoot: {fileID: 7598611890214168426}
   weaponMuzzle: {fileID: 5933435401206891243}
   fireRate: 0.15
-  bulletSpreadAngle: 30
+  bulletSpreadAngle: 0
   bulletsPerShot: 1
   bulletsPerClip: 200
   maxAmmo: 200

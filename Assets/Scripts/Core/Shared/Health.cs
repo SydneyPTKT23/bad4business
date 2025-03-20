@@ -5,14 +5,14 @@ namespace SLC.Bad4Business.Core
 {
     public class Health : MonoBehaviour
     {
-        [SerializeField] private int maximumHealth = 100;
+        [SerializeField] private float maximumHealth = 100;
         [SerializeField] private float criticalHealthRatio = 0.3f;
 
-        public UnityAction<int, GameObject> OnDamaged;
-        public UnityAction<int> OnHealed;
+        public UnityAction<float, GameObject> OnDamaged;
+        public UnityAction<float> OnHealed;
         public UnityAction OnDie;
 
-        public int CurrentHealth { get; set; }
+        public float CurrentHealth { get; set; }
         public bool Invincible { get; set; }
 
         public float GetHealthRatio() => CurrentHealth / maximumHealth;
@@ -27,7 +27,7 @@ namespace SLC.Bad4Business.Core
 
         // Call before healing to prevent using healing items at full health.
         public bool CanAddHealth() => CurrentHealth < maximumHealth;
-        public void AddHealth(int t_amount)
+        public void AddHealth(float t_amount)
         {
             CurrentHealth += t_amount;
             CurrentHealth = Mathf.Clamp(CurrentHealth, 0, maximumHealth);
@@ -39,7 +39,7 @@ namespace SLC.Bad4Business.Core
             }
         }
 
-        public void DealDamage(int t_amount)
+        public void TakeDamage(float t_amount, GameObject t_damageSource)
         {
             if (Invincible) { return; }
 
@@ -49,7 +49,7 @@ namespace SLC.Bad4Business.Core
             // Call the OnDamaged action for damage SFX or animations in other scripts.
             if (t_amount > 0)
             {
-                OnDamaged?.Invoke(t_amount, null);
+                OnDamaged?.Invoke(t_amount, t_damageSource);
             }
 
             HandleDeath();

@@ -96,10 +96,10 @@ namespace SLC.Bad4Business.Core
                     Debug.Log(t_hitInfo.transform.name);
                     
 
-                    Health t_target = t_hitInfo.transform.GetComponent<Health>();
+                    Damageable t_target = t_hitInfo.transform.GetComponent<Damageable>();
                     if (t_target != null)
                     {
-                        t_target.DealDamage(10);
+                        t_target.InflictDamage(10f, Owner);
                     }
                 }
             }
