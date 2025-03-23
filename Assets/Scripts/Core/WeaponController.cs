@@ -46,6 +46,8 @@ namespace SLC.Bad4Business.Core
 
         private void Start()
         {
+            Owner = GetComponentInParent<MovementController>().gameObject;
+
             m_currentAmmo = maxAmmo;
         }
 
@@ -93,7 +95,7 @@ namespace SLC.Bad4Business.Core
                 {
                     
 
-                    Debug.Log(t_hitInfo.transform.name);
+                    //Debug.Log(t_hitInfo.transform.name);
                     
 
                     Damageable t_target = t_hitInfo.transform.GetComponent<Damageable>();

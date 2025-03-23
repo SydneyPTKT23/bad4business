@@ -13,31 +13,24 @@ namespace SLC.Bad4Business.AI
         public float selfDestructYHeight = -20.0f;
 
 
-
-        float m_lastTimeDamaged = float.NegativeInfinity;
-
-
+        [SerializeField] private float attackRange = 2.0f;
         public GameObject KnownDetectedTarget => m_detectionModule.KnownDetectedTarget;
-
-        public DetectionModule m_detectionModule;
-
-
+        private DetectionModule m_detectionModule;
+        private NavMeshAgent m_agent;
 
         private Health m_health;
         [SerializeField] private Collider[] m_selfColliders;
-        private bool m_wasDamagedThisFrame;
 
 
         void Start()
         {
-
             m_health = GetComponent<Health>();
-
+            m_health.OnDamaged += OnDamaged;
+            m_health.OnDie += OnDie;
 
             m_selfColliders = GetComponentsInChildren<Collider>();
 
-            m_health.OnDie += OnDie;
-            m_health.OnDamaged += OnDamaged;
+            m_agent = GetComponent<NavMeshAgent>();
 
             m_detectionModule = GetComponentInChildren<DetectionModule>();
             m_detectionModule.OnDetectedTarget += HandleTargetSpotted;
@@ -49,14 +42,11 @@ namespace SLC.Bad4Business.AI
             EnsureIsWithinLevelBounds();
 
             m_detectionModule.HandleTargetDetection(m_selfColliders);
-
-
-            m_wasDamagedThisFrame = false;
         }
 
         private void EnsureIsWithinLevelBounds()
         {
-            // at every frame, this tests for conditions to kill the enemy
+            // At every frame, this tests for conditions to kill the enemy
             if (transform.position.y < selfDestructYHeight)
             {
                 Destroy(gameObject);
@@ -80,6 +70,13 @@ namespace SLC.Bad4Business.AI
             
         }
 
+        public void MoveToDestination(Vector3 t_destination)
+        {
+            if (m_agent)
+            {
+                m_agent.SetDestination(t_destination);
+            }
+        }
 
 
         private void OnDamaged(float t_damage, GameObject t_damageSource)
@@ -91,13 +88,10 @@ namespace SLC.Bad4Business.AI
                 m_detectionModule.OnDamaged(t_damageSource);
 
                 //onDamaged?.Invoke();
-                m_lastTimeDamaged = Time.time;
 
                 // play the damage tick sound
                 //if (DamageTick && !m_WasDamagedThisFrame)
                 //    AudioUtility.CreateSFX(DamageTick, transform.position, AudioUtility.AudioGroups.DamageTick, 0f);
-
-                m_wasDamagedThisFrame = true;
             }
         }
 
@@ -115,6 +109,23 @@ namespace SLC.Bad4Business.AI
 
             // this will call the OnDestroy function
             Destroy(gameObject, 0.2f);
+        }
+
+        private void TryAttack()
+        {
+            /*
+            if (canAttack)
+            {
+                OnAttack?.Invoke();
+                canAttack = false;
+                Invoke(nameof(ResetAttack), attackCooldown);
+            }
+            */
+        }
+
+        public bool IsTargetInAttackRange()
+        {
+            return KnownDetectedTarget != null && Vector3.Distance(transform.position, KnownDetectedTarget.transform.position) <= attackRange;
         }
     }
 }
