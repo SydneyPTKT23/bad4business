@@ -1,3 +1,4 @@
+using SLC.Bad4Business.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,18 +22,13 @@ namespace SLC.Bad4Business.AI
         public event Action<Vector3> OnHearNoise;
 
         public GameObject KnownDetectedTarget { get; private set; }
+        public bool IsTargetVisible { get; private set; }
 
-        private void Update()
+        public void HandleTargetDetection(Actor t_actor, Collider[] t_selfColliders)
         {
-            if (KnownDetectedTarget == null)
-            {
-                OnLost();
-            }
-        }
+            //KnownDetectedTarget = null;
 
-        public void HandleTargetDetection(Collider[] t_selfColliders)
-        {
-            KnownDetectedTarget = null;
+            IsTargetVisible = false;
 
             Collider[] t_rangeCheck = Physics.OverlapSphere(transform.position, detectionRange, targetLayer);
             foreach (Collider t_collider in t_rangeCheck)
@@ -47,14 +43,16 @@ namespace SLC.Bad4Business.AI
                 // Ensure there’s no obstacle blocking line of sight
                 if (!Physics.Raycast(transform.position, t_directionToTarget, t_distanceToTarget, obstacleLayer))
                 {
+                    IsTargetVisible = true;
                     KnownDetectedTarget = t_target.gameObject;
+
                     OnDetect();
+
                     return;
                 }
             }
         }
 
-        public virtual void OnLost() => OnLostTarget?.Invoke();
         public virtual void OnDetect() => OnDetectedTarget?.Invoke();
 
         public virtual void OnDamaged(GameObject t_damageSource)

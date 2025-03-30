@@ -13,24 +13,47 @@ namespace SLC.Bad4Business.AI
             Attack
         }
 
+        //public Animator animator;
+
+        public float attackStopDistanceRatio = 0.5f;
+
         public AIState CurrentState { get; private set; }
         private EnemyController m_enemyController;
 
-        private void Awake()
+        private void Start()
         {
             m_enemyController = GetComponent<EnemyController>();
 
-            
-        }
+            m_enemyController.onDetectedTarget = OnDetectedTarget;
 
-        private void Start()
-        {
             ChangeState(AIState.Idle);
         }
 
         private void Update()
         {
+            UpdateStateTransitions();
             UpdateCurrentState();
+        }
+
+        private void UpdateStateTransitions()
+        {
+            switch (CurrentState)
+            {
+                case AIState.Chase:
+                    if (m_enemyController.IsTargetVisible && m_enemyController.IsTargetInAttackRange())
+                    {
+                        ChangeState(AIState.Attack);
+                        m_enemyController.SetNavDestination(transform.position);
+                    }
+                    break;
+
+                case AIState.Attack:
+                    if (!m_enemyController.IsTargetInAttackRange())
+                    {
+                        ChangeState(AIState.Chase);
+                    }
+                    break;
+            }
         }
 
         private void UpdateCurrentState()
@@ -38,26 +61,43 @@ namespace SLC.Bad4Business.AI
             switch (CurrentState)
             {
                 case AIState.Idle:
-                    if (m_enemyController.KnownDetectedTarget != null)
-                        ChangeState(AIState.Chase);
+                    // Nothing to do while idle, could be expanded for idle animations or behavior.
                     break;
+
                 case AIState.Chase:
-                    m_enemyController.MoveToDestination(m_enemyController.KnownDetectedTarget.transform.position);
-                    if (m_enemyController.IsTargetInAttackRange())
-                        ChangeState(AIState.Attack);
+                    m_enemyController.SetNavDestination(m_enemyController.KnownDetectedTarget.transform.position);
+                    m_enemyController.RotateTowards(m_enemyController.KnownDetectedTarget.transform.position);
                     break;
+
                 case AIState.Attack:
-                    if (!m_enemyController.IsTargetInAttackRange())
-                        ChangeState(AIState.Chase);
+                    if (Vector3.Distance(m_enemyController.KnownDetectedTarget.transform.position,
+                            m_enemyController.DetectionModule.transform.position)
+                        >= (attackStopDistanceRatio * m_enemyController.attackRange))
+                    {
+                        m_enemyController.SetNavDestination(m_enemyController.KnownDetectedTarget.transform.position);
+                    }
                     else
-                        Debug.Log("attack");
+                    {
+                        m_enemyController.SetNavDestination(transform.position);
+                    }
+
+                    m_enemyController.RotateTowards(m_enemyController.KnownDetectedTarget.transform.position);
+                    m_enemyController.TryAttack(m_enemyController.KnownDetectedTarget.transform.position);
                     break;
             }
         }
-
+        
         private void ChangeState(AIState t_newState)
         {
             CurrentState = t_newState;
+        }
+
+        private void OnDetectedTarget()
+        {
+            if (CurrentState == AIState.Idle)
+            {
+                CurrentState = AIState.Chase;
+            }
         }
     }
 }

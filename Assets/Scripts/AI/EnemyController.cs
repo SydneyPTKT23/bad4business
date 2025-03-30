@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 namespace SLC.Bad4Business.AI
 {
@@ -11,37 +12,68 @@ namespace SLC.Bad4Business.AI
     public class EnemyController : MonoBehaviour
     {
         public float selfDestructYHeight = -20.0f;
+        public float rotationSpeed = 10.0f;
+        public float attackRange = 2.0f;
 
+        public float attackCooldown = 1.0f;
+        private float m_attackTimer = 0f;
 
-        [SerializeField] private float attackRange = 2.0f;
-        public GameObject KnownDetectedTarget => m_detectionModule.KnownDetectedTarget;
-        private DetectionModule m_detectionModule;
-        private NavMeshAgent m_agent;
+        public UnityAction onDetectedTarget;
+
+        public GameObject KnownDetectedTarget => DetectionModule.KnownDetectedTarget;
+        public bool IsTargetVisible => DetectionModule.IsTargetVisible;
+
+        public NavMeshAgent NavMeshAgent { get; private set; }
+        public DetectionModule DetectionModule { get; private set; }
+
 
         private Health m_health;
+        private Actor m_actor;
         [SerializeField] private Collider[] m_selfColliders;
+        
 
+        public MeleeAttackModule m_meleeAttack;
+        public RangedAttackModule m_rangedAttack;
+
+
+        private bool m_wasDamagedThisFrame;
 
         void Start()
         {
             m_health = GetComponent<Health>();
+            m_actor = GetComponent<Actor>();
+
+            NavMeshAgent = GetComponent<NavMeshAgent>();
+            m_selfColliders = GetComponentsInChildren<Collider>();
+
+            // Subscribe to damage & death events
             m_health.OnDamaged += OnDamaged;
             m_health.OnDie += OnDie;
 
-            m_selfColliders = GetComponentsInChildren<Collider>();
+            // Find and initialize attack modules
+            m_meleeAttack = GetComponent<MeleeAttackModule>();
 
-            m_agent = GetComponent<NavMeshAgent>();
 
-            m_detectionModule = GetComponentInChildren<DetectionModule>();
-            m_detectionModule.OnDetectedTarget += HandleTargetSpotted;
-            m_detectionModule.OnLostTarget += HandleTargetLost;
+            DetectionModule = GetComponentInChildren<DetectionModule>();
+
+            // Initialize detection module
+            DetectionModule.OnDetectedTarget += OnDetectedTarget;
+    
         }
 
         private void Update()
         {
             EnsureIsWithinLevelBounds();
 
-            m_detectionModule.HandleTargetDetection(m_selfColliders);
+            DetectionModule.HandleTargetDetection(m_actor, m_selfColliders);
+
+            // Update the attack cooldown timer
+            if (m_attackTimer > 0f)
+            {
+                m_attackTimer -= Time.deltaTime;
+            }
+
+            m_wasDamagedThisFrame = false;
         }
 
         private void EnsureIsWithinLevelBounds()
@@ -55,26 +87,26 @@ namespace SLC.Bad4Business.AI
         }
 
 
-        private void HandleTargetSpotted()
+        private void OnDetectedTarget()
         {
-            
+            onDetectedTarget.Invoke();
         }
 
-        private void HandleTargetLost()
+        public void RotateTowards(Vector3 t_targetPosition)
         {
-            
-        }
-
-        private void HandleForgetTarget()
-        {
-            
-        }
-
-        public void MoveToDestination(Vector3 t_destination)
-        {
-            if (m_agent)
+            Vector3 t_direction = Vector3.ProjectOnPlane(t_targetPosition - transform.position, Vector3.up).normalized;
+            if (t_direction.sqrMagnitude > 0f)
             {
-                m_agent.SetDestination(t_destination);
+                Quaternion t_targetRotation = Quaternion.LookRotation(t_direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, t_targetRotation, Time.deltaTime * rotationSpeed);
+            }
+        }
+
+        public void SetNavDestination(Vector3 t_destination)
+        {
+            if (NavMeshAgent)
+            {
+                NavMeshAgent.SetDestination(t_destination);
             }
         }
 
@@ -85,42 +117,35 @@ namespace SLC.Bad4Business.AI
             if (t_damageSource && !t_damageSource.GetComponent<EnemyController>())
             {
                 // pursue the player
-                m_detectionModule.OnDamaged(t_damageSource);
-
-                //onDamaged?.Invoke();
-
-                // play the damage tick sound
-                //if (DamageTick && !m_WasDamagedThisFrame)
-                //    AudioUtility.CreateSFX(DamageTick, transform.position, AudioUtility.AudioGroups.DamageTick, 0f);
+                DetectionModule.OnDamaged(t_damageSource);
             }
         }
 
         private void OnDie()
         {
-            // spawn a particle system when dying
-            //var vfx = Instantiate(DeathVfx, DeathVfxSpawnPoint.position, Quaternion.identity);
-            //Destroy(vfx, 5f);
-
-            // tells the game flow manager to handle the enemy destuction
-            //m_enemyManager.UnregisterEnemy(this);
-
-            // loot an object
-            
 
             // this will call the OnDestroy function
-            Destroy(gameObject, 0.2f);
+            Destroy(gameObject);
         }
 
-        private void TryAttack()
+        public bool TryAttack(Vector3 t_targetPosition)
         {
-            /*
-            if (canAttack)
+            // Check if enough time has passed since the last attack (based on cooldown)
+            if (m_attackTimer <= 0f)
             {
-                OnAttack?.Invoke();
-                canAttack = false;
-                Invoke(nameof(ResetAttack), attackCooldown);
+                // Perform the attack (you can use melee or ranged based on your needs)
+                if (m_meleeAttack != null && KnownDetectedTarget != null)
+                {
+                    m_meleeAttack.PerformAttack();
+                }
+
+                // Reset the attack cooldown timer
+                m_attackTimer = attackCooldown;
+
+                return true;
             }
-            */
+
+            return false;
         }
 
         public bool IsTargetInAttackRange()
