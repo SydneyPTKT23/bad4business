@@ -6,6 +6,7 @@ namespace SLC.Bad4Business.AI
     {
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private Transform firePoint;
+
         [SerializeField] private float attackCooldown = 1.5f;
         [SerializeField] private float projectileSpeed = 10f;
         [SerializeField] private float attackRange = 15f;
@@ -13,29 +14,25 @@ namespace SLC.Bad4Business.AI
 
         private float lastAttackTime = 0f;
 
-        public bool IsTargetInAttackRange(Vector3 targetPosition)
-        {
-            return Vector3.Distance(transform.position, targetPosition) <= attackRange;
-        }
+        public GameObject Owner;
+        public Vector3 MuzzleVelocity;
 
         public void PerformAttack(Vector3 targetPosition)
         {
             if (Time.time < lastAttackTime + attackCooldown) return;
             if (projectilePrefab == null || firePoint == null) return;
 
-            // Calculate direction to target
+            GameObject projectileInstance = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
+            ProjectileBase projectile = projectileInstance.GetComponent<ProjectileBase>();
+            if (projectile == null)
+                return;
+
+            // Set projectile direction towards the target
             Vector3 direction = (targetPosition - firePoint.position).normalized;
+            projectileInstance.transform.forward = direction;
 
-            // Instantiate and shoot the projectile
-            GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
-            Rigidbody rb = projectile.GetComponent<Rigidbody>();
-
-            if (rb != null)
-            {
-                rb.velocity = direction * projectileSpeed;
-            }
-
-            lastAttackTime = Time.time;
+            // Initialize the projectile
+            projectile.Shoot(this);
         }
 
         private void OnDrawGizmos()

@@ -1,22 +1,30 @@
-using SLC.Bad4Business.Core;
+using SLC.Bad4Business.AI;
 using UnityEngine;
+using System;
 
-public class ProjectileBase : MonoBehaviour
+/// <summary>
+/// Base class for projectiles, handling owner assignment and initial trajectory.
+/// </summary>
+public abstract class ProjectileBase : MonoBehaviour
 {
-    [SerializeField] private int damage = 10;
-    [SerializeField] private float lifetime = 5f;
+    // The entity that fired the projectile
+    public GameObject Owner { get; private set; }
+    public Vector3 InitialPosition { get; private set; }
+    public Vector3 InitialDirection { get; private set; }
 
-    private void Start()
-    {
-        Destroy(gameObject, lifetime);
-    }
+    // Velocity inherited from the weapon (e.g., for moving platforms or projectiles with momentum)
+    public Vector3 InheritedMuzzleVelocity { get; private set; }
 
-    private void OnTriggerEnter(Collider other)
+    public event Action OnShoot;
+
+    // Initializes the projectile with data from the weapon that fired it.
+    public virtual void Shoot(RangedAttackModule t_controller)
     {
-        if (other.CompareTag("Player"))
-        {
-            other.GetComponent<Damageable>()?.InflictDamage(damage, gameObject);
-            Destroy(gameObject);
-        }
+        Owner = t_controller.Owner;
+        InitialPosition = transform.position;
+        InitialDirection = transform.forward;
+        InheritedMuzzleVelocity = t_controller.MuzzleVelocity;
+
+        OnShoot?.Invoke();
     }
 }

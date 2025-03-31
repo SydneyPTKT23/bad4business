@@ -18,7 +18,11 @@ namespace SLC.Bad4Business.AI
         public float attackCooldown = 1.0f;
         private float m_attackTimer = 0f;
 
+        public UnityAction onAttack;
         public UnityAction onDetectedTarget;
+        public UnityAction onDamaged;
+
+        private bool m_wasDamagedThisFrame = false;
 
         public GameObject KnownDetectedTarget => DetectionModule.KnownDetectedTarget;
         public bool IsTargetVisible => DetectionModule.IsTargetVisible;
@@ -35,8 +39,7 @@ namespace SLC.Bad4Business.AI
         public MeleeAttackModule m_meleeAttack;
         public RangedAttackModule m_rangedAttack;
 
-
-        private bool m_wasDamagedThisFrame;
+        private float m_lastTimeDamaged = float.NegativeInfinity;
 
         void Start()
         {
@@ -52,7 +55,7 @@ namespace SLC.Bad4Business.AI
 
             // Find and initialize attack modules
             m_meleeAttack = GetComponent<MeleeAttackModule>();
-
+            m_rangedAttack = GetComponent<RangedAttackModule>();
 
             DetectionModule = GetComponentInChildren<DetectionModule>();
 
@@ -82,7 +85,6 @@ namespace SLC.Bad4Business.AI
             if (transform.position.y < selfDestructYHeight)
             {
                 Destroy(gameObject);
-                return;
             }
         }
 
@@ -110,20 +112,22 @@ namespace SLC.Bad4Business.AI
             }
         }
 
-
         private void OnDamaged(float t_damage, GameObject t_damageSource)
         {
             // test if the damage source is the player
             if (t_damageSource && !t_damageSource.GetComponent<EnemyController>())
             {
-                // pursue the player
                 DetectionModule.OnDamaged(t_damageSource);
+
+                onDamaged?.Invoke();
+                m_lastTimeDamaged = Time.time;
+
+                m_wasDamagedThisFrame = true;
             }
         }
 
         private void OnDie()
         {
-
             // this will call the OnDestroy function
             Destroy(gameObject);
         }
@@ -137,6 +141,11 @@ namespace SLC.Bad4Business.AI
                 if (m_meleeAttack != null && KnownDetectedTarget != null)
                 {
                     m_meleeAttack.PerformAttack();
+                }
+
+                if (m_rangedAttack != null && KnownDetectedTarget != null)
+                {
+                    m_rangedAttack.PerformAttack(KnownDetectedTarget.transform.position);
                 }
 
                 // Reset the attack cooldown timer

@@ -859,7 +859,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   detectionRange: 20
   hearingRange: 15
-  attackRange: 2
   targetLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -1446,6 +1445,7 @@ MonoBehaviour:
   selfDestructYHeight: -20
   rotationSpeed: 10
   attackRange: 15
+  attackCooldown: 1
   m_selfColliders: []
   m_meleeAttack: {fileID: 0}
   m_rangedAttack: {fileID: 0}
@@ -1555,7 +1555,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 6
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -1579,7 +1579,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d48bf395571fc974f9f678d0827695e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackStopDistanceRatio: 0.5
+  attackStopDistanceRatio: 1
 --- !u!114 &1121081650
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1589,16 +1589,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 1121081638}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8f2a0ca5945766349b52b74e70e10b72, type: 3}
+  m_Script: {fileID: 11500000, guid: 5375a8c2c323bf44b95e6812a2e87edb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackWidth: 1.5
-  attackHeight: 1.5
-  attackRange: 2
-  attackDamage: 10
-  playerLayer:
+  projectilePrefab: {fileID: 1798062403569287512, guid: eb84244969836584891ce85f78d5c5e2, type: 3}
+  firePoint: {fileID: 1103878987}
+  attackCooldown: 1.5
+  projectileSpeed: 10
+  attackRange: 15
+  targetLayer:
     serializedVersion: 2
     m_Bits: 8
+  Owner: {fileID: 1121081638}
+  MuzzleVelocity: {x: 0, y: 0, z: 0}
 --- !u!1 &1252906243
 GameObject:
   m_ObjectHideFlags: 0
@@ -1610,7 +1613,6 @@ GameObject:
   - component: {fileID: 1252906244}
   - component: {fileID: 1252906247}
   - component: {fileID: 1252906246}
-  - component: {fileID: 1252906245}
   m_Layer: 3
   m_Name: Capsule
   m_TagString: Untagged
@@ -1633,29 +1635,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 158250064}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &1252906245
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1252906243}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &1252906246
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2875,7 +2854,6 @@ GameObject:
   - component: {fileID: 2117382452}
   - component: {fileID: 2117382455}
   - component: {fileID: 2117382454}
-  - component: {fileID: 2117382453}
   m_Layer: 3
   m_Name: Cube
   m_TagString: Untagged
@@ -2898,27 +2876,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 158250064}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &2117382453
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2117382451}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &2117382454
 MeshRenderer:
   m_ObjectHideFlags: 0
